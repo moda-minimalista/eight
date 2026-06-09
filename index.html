@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EIGHT | Moda Minimalista</title>
+  <meta name="description" content="Roupas premium minimalistas da EIGHT. Qualidade, conforto e estilo atemporal.">
+  <meta name="keywords" content="camiseta premium, moletom premium, streetwear, moda masculina, moda casual, EIGHT">
+  <meta name="theme-color" content="#0F0F0F">
+  <link rel="icon" type="image/jpeg" href="assets/images/brand/logo.jpeg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles/main.css">
+</head>
+<body>
+  <div class="announcement">Frete grátis para todo o Brasil em compras acima de R$ 299</div>
+
+  <header class="site-header">
+    <a class="brand" href="#home" aria-label="EIGHT - página inicial">
+      <img class="brand-image" src="assets/images/brand/logo.jpeg" alt="EIGHT">
+    </a>
+    <nav class="desktop-nav" aria-label="Navegação principal">
+      <a href="#catalogo">Loja</a>
+      <a href="#produto/eight-basic-tee">Basic Tee</a>
+      <a href="#catalogo">Coleção</a>
+      <a href="#institucional">Marca</a>
+    </nav>
+    <div class="header-actions">
+      <button class="icon-button search-trigger" aria-label="Buscar">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-4-4"></path></svg>
+      </button>
+      <a class="icon-button account-link" href="#login" aria-label="Minha conta">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"></circle><path d="M4 21c.5-5 3.2-7 8-7s7.5 2 8 7"></path></svg>
+      </a>
+      <a class="icon-button cart-link" href="#carrinho" aria-label="Carrinho">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 4h2l2.4 11.2a2 2 0 0 0 2 1.6h7.8a2 2 0 0 0 2-1.6L21 8H6"></path><circle cx="10" cy="21" r="1"></circle><circle cx="18" cy="21" r="1"></circle></svg>
+        <span class="cart-count">0</span>
+      </a>
+      <button class="icon-button menu-toggle" aria-label="Abrir menu">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"></path></svg>
+      </button>
+    </div>
+  </header>
+
+  <div class="search-panel" aria-hidden="true">
+    <div class="search-inner">
+      <label for="global-search">O que você procura?</label>
+      <div class="search-line">
+        <input id="global-search" type="search" placeholder="Buscar por produto..." autocomplete="off">
+        <button class="search-submit">Buscar</button>
+        <button class="search-close" aria-label="Fechar busca">×</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="mobile-menu" aria-hidden="true">
+    <button class="mobile-close" aria-label="Fechar menu">×</button>
+    <a href="#catalogo">Loja</a>
+    <a href="#produto/eight-basic-tee">Basic Tee</a>
+    <a href="#catalogo">Coleção</a>
+    <a href="#institucional">Marca</a>
+  </div>
+
+  <main id="app"></main>
+
+  <footer class="site-footer">
+    <div class="footer-main">
+      <div class="footer-brand">
+        <a class="brand brand-light" href="#home">
+          <img class="brand-image footer-logo" src="assets/images/brand/logo.jpeg" alt="EIGHT">
+        </a>
+        <p>O essencial, elevado.<br>Peças para agora e para sempre.</p>
+        <div class="social-links"><a href="#" aria-label="Instagram">IG</a><a href="#" aria-label="TikTok">TK</a></div>
+      </div>
+      <div>
+        <h3>Comprar</h3>
+        <a href="#catalogo">Camisetas</a>
+        <a href="#catalogo">Moletons</a>
+        <a href="#catalogo">Calças</a>
+        <a href="#catalogo">Novidades</a>
+      </div>
+      <div>
+        <h3>Ajuda</h3>
+        <a href="#institucional">Trocas e devoluções</a>
+        <a href="#institucional">Envios</a>
+        <a href="#institucional">Guia de tamanhos</a>
+        <a href="#institucional">Fale conosco</a>
+      </div>
+      <div class="newsletter">
+        <h3>Faça parte da EIGHT</h3>
+        <p>Receba lançamentos e conteúdos exclusivos.</p>
+        <form id="newsletter-form">
+          <input type="email" required placeholder="Seu melhor e-mail" aria-label="Seu e-mail">
+          <button aria-label="Cadastrar e-mail">→</button>
+        </form>
+        <span class="newsletter-note"></span>
+      </div>
+    </div>
+    <div class="footer-bottom"><span>© 2026 EIGHT. Todos os direitos reservados.</span><span>Privacidade · Termos · Cookies</span></div>
+  </footer>
+
+  <div id="toast" role="status" aria-live="polite"></div>
+  <script src="scripts/config/store.js"></script>
+  <script src="scripts/data/products.js"></script>
+  <script src="scripts/services/orders.js"></script>
+  <script src="scripts/integrations/mercado-pago.js"></script>
+  <script type="module" src="scripts/firebase/bootstrap.js"></script>
+  <script src="scripts/app.js"></script>
+</body>
+</html>
