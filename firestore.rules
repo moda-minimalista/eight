@@ -12,7 +12,15 @@ service cloud.firestore {
 
     function isAdmin() {
       return signedIn()
-        && get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.role == "admin";
+        && get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.role == "admin"
+        && get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.ativo == true;
+    }
+
+    function isInitialAdmin(userId) {
+      return isOwner(userId)
+        && !exists(/databases/$(database)/documents/configuracoes/bootstrap)
+        && getAfter(/databases/$(database)/documents/configuracoes/bootstrap).data.adminUid == userId
+        && getAfter(/databases/$(database)/documents/configuracoes/bootstrap).data.concluido == true;
     }
 
     match /produtos/{productId} {
@@ -30,18 +38,39 @@ service cloud.firestore {
     }
 
     match /configuracoes/{configId} {
-      allow read, write: if isAdmin();
+      allow read: if configId in ["bootstrap", "site"] || isAdmin();
+      allow create: if isAdmin()
+        || (configId == "bootstrap"
+          && signedIn()
+          && !exists(/databases/$(database)/documents/configuracoes/bootstrap)
+          && request.resource.data.adminUid == request.auth.uid
+          && request.resource.data.concluido == true
+          && getAfter(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.role == "admin"
+          && getAfter(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.ativo == true);
+      allow update, delete: if isAdmin();
     }
 
     match /usuarios/{userId} {
-      allow create: if isOwner(userId)
-        && request.resource.data.role == "cliente"
-        && request.resource.data.email == request.auth.token.email;
+      allow create: if (isOwner(userId)
+          && request.resource.data.role == "cliente"
+          && request.resource.data.ativo == true
+          && request.resource.data.email == request.auth.token.email)
+        || (isAdmin()
+          && request.resource.data.role in ["cliente", "admin"]
+          && request.resource.data.ativo == true)
+        || (isInitialAdmin(userId)
+          && request.resource.data.role == "admin"
+          && request.resource.data.ativo == true
+          && request.resource.data.email == request.auth.token.email);
       allow read: if isOwner(userId) || isAdmin();
-      allow update: if isAdmin()
+      allow update: if (isAdmin()
+          && (userId != request.auth.uid
+            || (request.resource.data.role == "admin"
+              && request.resource.data.ativo == true)))
         || (isOwner(userId)
           && request.resource.data.role == resource.data.role
-          && request.resource.data.email == resource.data.email);
+          && request.resource.data.email == resource.data.email
+          && request.resource.data.ativo == resource.data.ativo);
       allow delete: if isAdmin();
 
       match /carrinho/{cartId} {
@@ -56,6 +85,29 @@ service cloud.firestore {
         && request.resource.data.valorTotal >= 0;
       allow read: if isAdmin()
         || (signedIn() && resource.data.usuarioId == request.auth.uid);
+      allow update: if isAdmin()
+        || (signedIn()
+          && resource.data.usuarioId == request.auth.uid
+          && resource.data.status == "Aguardando pagamento"
+          && request.resource.data.status == "Cancelado"
+          && request.resource.data.pagamentoStatus == "cancelled"
+          && request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly(["status", "pagamentoStatus", "dataAtualizacao"]));
+      allow delete: if isAdmin();
+    }
+
+    match /avaliacoes/{reviewId} {
+      allow read: if isAdmin()
+        || resource.data.aprovado == true
+        || (signedIn() && resource.data.usuarioId == request.auth.uid);
+      allow create: if signedIn()
+        && request.resource.data.usuarioId == request.auth.uid
+        && request.resource.data.aprovado == false
+        && request.resource.data.nota >= 1
+        && request.resource.data.nota <= 5
+        && request.resource.data.comentario is string
+        && request.resource.data.comentario.size() >= 10
+        && request.resource.data.comentario.size() <= 800;
       allow update, delete: if isAdmin();
     }
   }

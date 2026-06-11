@@ -67,19 +67,29 @@ Para configurar o WhatsApp da loja, informe o número com DDI e DDD em:
 whatsappNumber: "5511999999999"
 ```
 
-## Produção com Mercado Pago e Firebase
+## Administração e Firebase
 
-O armazenamento local é adequado para protótipo e operação manual em um único dispositivo, mas não substitui um backend de produção.
-Dados pessoais e pedidos ficam no `localStorage` do navegador nesta etapa. Não use essa versão como armazenamento definitivo de dados sensíveis.
+A aplicação utiliza Firebase para:
 
-Para vendas reais:
+- cadastro, login, sessão e recuperação de senha;
+- catálogo, categorias, cupons, usuários e pedidos no Firestore;
+- carrinho persistente para clientes autenticados;
+- imagens originais no Hosting e novos uploads otimizados no Firestore;
+- estoque por SKU e redução transacional após confirmação do pagamento;
+- painel administrativo de produtos, pedidos e acessos.
 
-- salvar pedidos e estoque no Firebase/Firestore;
-- criar preferências do Mercado Pago em uma Cloud Function;
+Na seção **Acessos**, um administrador ativo pode criar outras contas administrativas, promover clientes, bloquear acessos e enviar redefinição de senha.
+
+As senhas são processadas somente pelo Firebase Authentication. Nenhuma senha é armazenada no código ou no Firestore.
+
+Para a primeira configuração, abra `#configurar-loja`. O fluxo cria o administrador principal, os documentos iniciais e o catálogo automaticamente. Ele é bloqueado pelas regras após a primeira execução.
+
+Para concluir pagamentos automáticos com Mercado Pago:
+
+- criar preferências em uma Cloud Function;
 - manter o access token somente no servidor;
-- validar webhooks do Mercado Pago;
-- chamar `updateStatus(orderId, "Pago")` somente após confirmação autenticada;
-- aplicar regras de segurança, autenticação administrativa e controle transacional de estoque.
+- validar os webhooks do Mercado Pago;
+- atualizar o pedido para `Pago` somente após confirmação autenticada.
 
 Nunca coloque credenciais privadas do Mercado Pago no código do navegador.
 
@@ -89,7 +99,7 @@ A aplicação agora possui integração modular com:
 
 - Firebase Authentication;
 - Cloud Firestore;
-- Firebase Storage;
+- upload de imagens sem dependência do Firebase Storage;
 - Firebase Hosting.
 
 Consulte:
