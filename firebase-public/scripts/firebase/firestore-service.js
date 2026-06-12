@@ -12,6 +12,7 @@
   serverTimestamp,
   setDoc,
   updateDoc,
+  writeBatch,
   where
 } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-firestore.js";
 import { auth, db } from "./config.js";
@@ -134,13 +135,40 @@ export async function listCategories() {
 
 export async function saveCategory(category) {
   const id = category.id || category.nome.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, "-");
-  await setDoc(doc(db, "categorias", id), {
+  const reference = doc(db, "categorias", id);
+  const existing = await getDoc(reference);
+  const oldName = existing.exists() ? existing.data().nome : null;
+  const batch = writeBatch(db);
+  batch.set(reference, {
     nome: category.nome,
     slug: id,
     ativo: category.ativo !== false,
     dataAtualizacao: serverTimestamp()
   }, { merge: true });
+
+  if (oldName && oldName !== category.nome) {
+    const products = await getDocs(query(collection(db, "produtos"), where("categoria", "==", oldName)));
+    products.docs.forEach(product => {
+      batch.update(product.ref, {
+        categoria: category.nome,
+        dataAtualizacao: serverTimestamp()
+      });
+    });
+  }
+
+  await batch.commit();
   return id;
+}
+
+export async function deleteCategory(categoryId) {
+  const reference = doc(db, "categorias", categoryId);
+  const snapshot = await getDoc(reference);
+  if (!snapshot.exists()) throw new Error("Categoria não encontrada.");
+  const products = await getDocs(query(collection(db, "produtos"), where("categoria", "==", snapshot.data().nome), limit(1)));
+  if (!products.empty) {
+    throw new Error("Esta categoria ainda possui produtos. Mova os produtos para outra categoria antes de excluir.");
+  }
+  await deleteDoc(reference);
 }
 
 export async function saveCoupon(coupon) {
@@ -154,6 +182,48 @@ export async function saveCoupon(coupon) {
     dataAtualizacao: serverTimestamp()
   }, { merge: true });
   return code;
+}
+
+export async function listCoupons() {
+  const snapshot = await getDocs(query(collection(db, "cupons"), orderBy("codigo")));
+  return snapshot.docs.map(item => ({ id: item.id, ...item.data() }));
+}
+
+export async function deleteCoupon(couponId) {
+  await deleteDoc(doc(db, "cupons", couponId));
+}
+
+export async function listActiveBanners() {
+  const snapshot = await getDocs(query(collection(db, "banners"), where("ativo", "==", true)));
+  return snapshot.docs
+    .map(item => ({ id: item.id, ...item.data() }))
+    .sort((a, b) => Number(a.ordem || 0) - Number(b.ordem || 0));
+}
+
+export async function listAllBanners() {
+  const snapshot = await getDocs(collection(db, "banners"));
+  return snapshot.docs
+    .map(item => ({ id: item.id, ...item.data() }))
+    .sort((a, b) => Number(a.ordem || 0) - Number(b.ordem || 0));
+}
+
+export async function saveBanner(banner) {
+  const id = banner.id || `banner-${Date.now()}`;
+  await setDoc(doc(db, "banners", id), {
+    titulo: banner.title,
+    texto: banner.text,
+    botao: banner.buttonText,
+    link: banner.link || "#catalogo",
+    imagem: banner.image,
+    ordem: Number(banner.order || 0),
+    ativo: banner.active !== false,
+    dataAtualizacao: serverTimestamp()
+  }, { merge: true });
+  return id;
+}
+
+export async function deleteBanner(bannerId) {
+  await deleteDoc(doc(db, "banners", bannerId));
 }
 
 export async function createOrder(order) {

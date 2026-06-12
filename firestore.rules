@@ -37,6 +37,11 @@ service cloud.firestore {
       allow read, write: if isAdmin();
     }
 
+    match /banners/{bannerId} {
+      allow read: if isAdmin() || resource.data.ativo == true;
+      allow create, update, delete: if isAdmin();
+    }
+
     match /configuracoes/{configId} {
       allow read: if configId in ["bootstrap", "site"] || isAdmin();
       allow create: if isAdmin()

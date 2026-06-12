@@ -12,7 +12,12 @@ powershell -NoProfile -ExecutionPolicy Bypass -Command ^
   "Copy-Item -LiteralPath 'index.html' -Destination 'firebase-public\index.html' -Force; " ^
   "Copy-Item -LiteralPath 'assets' -Destination 'firebase-public' -Recurse -Force; " ^
   "Copy-Item -LiteralPath 'scripts' -Destination 'firebase-public' -Recurse -Force; " ^
-  "Copy-Item -LiteralPath 'styles' -Destination 'firebase-public' -Recurse -Force"
+  "Copy-Item -LiteralPath 'styles' -Destination 'firebase-public' -Recurse -Force; " ^
+  "if (-not (Test-Path 'public')) { New-Item -ItemType Directory -Path 'public' | Out-Null }; " ^
+  "Copy-Item -LiteralPath 'index.html' -Destination 'public\index.html' -Force; " ^
+  "Copy-Item -LiteralPath 'assets' -Destination 'public' -Recurse -Force; " ^
+  "Copy-Item -LiteralPath 'scripts' -Destination 'public' -Recurse -Force; " ^
+  "Copy-Item -LiteralPath 'styles' -Destination 'public' -Recurse -Force"
 if errorlevel 1 goto erro
 if not exist "firebase-public\assets\images\brand\logo.jpeg" goto arquivos
 if not exist "firebase-public\assets\images\products\basic-tee\preto.jpeg" goto arquivos
@@ -21,7 +26,9 @@ powershell -NoProfile -ExecutionPolicy Bypass -Command ^
   "if ($config.hosting.public -ne 'firebase-public') { exit 1 }; " ^
   "$html = Get-Content -Raw 'firebase-public\index.html'; " ^
   "if ($html -notmatch '<title>EIGHT \| Moda Minimalista</title>') { exit 1 }; " ^
-  "if ($html -match 'Firebase Hosting Setup Complete') { exit 1 }"
+  "if ($html -match 'Firebase Hosting Setup Complete') { exit 1 }; " ^
+  "$publicHtml = Get-Content -Raw 'public\index.html'; " ^
+  "if ($publicHtml -match 'Firebase Hosting Setup Complete') { exit 1 }"
 if errorlevel 1 goto configuracao
 echo Arquivos e imagens preparados com sucesso.
 echo.

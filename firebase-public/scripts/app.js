@@ -27,7 +27,10 @@ let adminOrders = [];
 let adminUsers = [];
 let adminCategories = [];
 let adminReviews = [];
+let adminCoupons = [];
+let adminBanners = [];
 let customerReviews = [];
+let promotionBanners = [];
 let siteSettings = {
   announcement: "Frete grátis para todo o Brasil em compras acima de R$ 299",
   heroEyebrow: "Nova coleção · The Essentials",
@@ -251,10 +254,11 @@ async function initializeFirebaseIntegration(services) {
   firebaseServices = services;
   services.auth.observeSession(handleSession);
   try {
-    const [remoteProducts, remoteSettings, reviews] = await Promise.all([
+    const [remoteProducts, remoteSettings, reviews, banners] = await Promise.all([
       services.firestore.listActiveProducts(),
       services.firestore.getSiteSettings().catch(() => ({})),
-      services.firestore.listApprovedReviews().catch(() => [])
+      services.firestore.listApprovedReviews().catch(() => []),
+      services.firestore.listActiveBanners().catch(() => [])
     ]);
     if (remoteProducts.length) {
       catalog = remoteProducts;
@@ -262,6 +266,7 @@ async function initializeFirebaseIntegration(services) {
     }
     siteSettings = { ...siteSettings, ...remoteSettings };
     customerReviews = reviews;
+    promotionBanners = banners;
     applySiteSettings();
     render();
   } catch {
@@ -308,6 +313,26 @@ function collectionGrid(products = catalog) {
   return products.map(productCard).join("");
 }
 
+function promotionBannerSection() {
+  if (!promotionBanners.length) return "";
+  return `
+    <section class="promotion-banners" aria-label="Promoções EIGHT">
+      <div class="container promotion-banner-grid ${promotionBanners.length === 1 ? "single" : ""}">
+        ${promotionBanners.map(banner => `
+          <a class="promotion-banner" href="${escapeHtml(banner.link || "#catalogo")}">
+            <img src="${escapeHtml(banner.imagem)}" alt="${escapeHtml(banner.titulo || "Promoção EIGHT")}">
+            <span class="promotion-banner-overlay"></span>
+            <div class="promotion-banner-copy">
+              <p class="eyebrow">EIGHT Special</p>
+              <h2>${escapeHtml(banner.titulo || "Oferta especial")}</h2>
+              ${banner.texto ? `<p>${escapeHtml(banner.texto)}</p>` : ""}
+              <span class="promotion-banner-button">${escapeHtml(banner.botao || "Ver promoção")} →</span>
+            </div>
+          </a>`).join("")}
+      </div>
+    </section>`;
+}
+
 function homePage() {
   const basic = catalog[0];
   const basicColor = selectedColor && basic.colors[selectedColor] ? selectedColor : firstColor(basic);
@@ -344,6 +369,7 @@ function homePage() {
         <div class="benefit"><span class="benefit-number">04</span><div><strong>Troca fácil</strong><span>Primeira troca por nossa conta</span></div></div>
       </div>
     </section>
+    ${promotionBannerSection()}
 
     <section class="featured">
       <div class="container">
@@ -773,6 +799,21 @@ function adminPage() {
             <div><h3>Marca e rodapé</h3><div class="form-field"><label>Aviso superior</label><input name="announcement" value="${escapeHtml(siteSettings.announcement)}"></div><div class="form-field"><label>Título institucional</label><input name="institutionalTitle" value="${escapeHtml(siteSettings.institutionalTitle)}"></div><div class="form-field"><label>Texto institucional</label><textarea name="institutionalText" rows="5">${escapeHtml(siteSettings.institutionalText)}</textarea></div><div class="form-field"><label>Descrição do rodapé</label><textarea name="footerDescription" rows="4">${escapeHtml(siteSettings.footerDescription)}</textarea></div><div class="form-field"><label>WhatsApp</label><input name="whatsappNumber" value="${escapeHtml(siteSettings.whatsappNumber)}"></div><div class="form-field"><label>E-mail de contato</label><input type="email" name="contactEmail" value="${escapeHtml(siteSettings.contactEmail)}"></div></div>
           </div>
         </form>
+        <div class="admin-promotion-manager">
+          <form id="admin-banner-form" class="admin-form">
+            <p class="eyebrow">Campanhas</p>
+            <h2 id="admin-banner-form-title">Novo banner promocional</h2>
+            <input type="hidden" name="editingId">
+            <div class="form-field"><label>Título</label><input name="title" required placeholder="Ex.: Semana EIGHT"></div>
+            <div class="form-field"><label>Texto</label><textarea name="text" rows="3" placeholder="Detalhes da promoção"></textarea></div>
+            <div class="form-grid"><div class="form-field"><label>Texto do botão</label><input name="buttonText" value="Ver promoção"></div><div class="form-field"><label>Link do botão</label><input name="link" value="#catalogo"></div></div>
+            <div class="form-grid"><div class="form-field"><label>Ordem</label><input name="order" type="number" min="0" value="0"></div><label class="admin-check"><input name="active" type="checkbox" checked> Banner ativo</label></div>
+            <div class="form-field"><label>Imagem do banner</label><input name="image" placeholder="Selecione uma imagem abaixo" required><input id="admin-promotion-image" type="file" accept="image/jpeg,image/png,image/webp"><small id="promotion-upload-status">A imagem será otimizada antes de salvar.</small></div>
+            <button class="button" type="submit">Salvar banner</button>
+            <button class="admin-cancel-edit" type="button" data-action="cancel-banner-edit" hidden>Cancelar edição</button>
+          </form>
+          <div><div class="admin-list-head"><div><h2>Banners promocionais</h2><small>Os banners ativos aparecem na página inicial.</small></div><button data-action="refresh-admin">Atualizar</button></div><div class="admin-banners" id="admin-banners"><p>Carregando banners...</p></div></div>
+        </div>
       </section>
 
       <section class="admin-section" data-admin-section="reviews">
@@ -786,10 +827,21 @@ function adminPage() {
       </section>
 
       <section class="admin-section" data-admin-section="categories">
-        <div class="admin-dual">
-          <form id="admin-category-form" class="admin-form"><h2>Nova categoria</h2><div class="form-field"><label>Nome</label><input name="name" required></div><button class="button" type="submit">Salvar categoria</button></form>
-          <form id="admin-coupon-form" class="admin-form"><h2>Novo cupom</h2><div class="form-field"><label>Código</label><input name="code" required></div><div class="form-grid"><div class="form-field"><label>Tipo</label><select name="type"><option value="percentual">Percentual</option><option value="fixo">Valor fixo</option></select></div><div class="form-field"><label>Valor</label><input name="value" type="number" min="0" step="0.01" required></div></div><button class="button" type="submit">Salvar cupom</button></form>
+        <div class="admin-layout">
+          <div class="admin-category-tools">
+            <form id="admin-category-form" class="admin-form">
+              <h2 id="admin-category-title">Nova categoria</h2>
+              <input type="hidden" name="editingId">
+              <div class="form-field"><label>Nome</label><input name="name" required></div>
+              <label class="admin-check"><input name="active" type="checkbox" checked> Categoria ativa na loja</label>
+              <button class="button" type="submit">Salvar categoria</button>
+              <button class="admin-cancel-edit" type="button" data-action="cancel-category-edit" hidden>Cancelar edição</button>
+            </form>
+            <form id="admin-coupon-form" class="admin-form"><h2 id="admin-coupon-title">Novo cupom</h2><input type="hidden" name="editingCode"><div class="form-field"><label>Código</label><input name="code" required></div><div class="form-grid"><div class="form-field"><label>Tipo</label><select name="type"><option value="percentual">Percentual</option><option value="fixo">Valor fixo</option></select></div><div class="form-field"><label>Valor</label><input name="value" type="number" min="0" step="0.01" required></div></div><div class="form-field"><label>Validade</label><input name="validity" type="date"></div><label class="admin-check"><input name="active" type="checkbox" checked> Cupom ativo</label><button class="button" type="submit">Salvar cupom</button><button class="admin-cancel-edit" type="button" data-action="cancel-coupon-edit" hidden>Cancelar edição</button></form>
+          </div>
+          <div><div class="admin-list-head"><div><h2>Categorias cadastradas</h2><small>Edite, desative ou exclua categorias sem produtos vinculados.</small></div><button data-action="refresh-admin">Atualizar</button></div><div class="admin-categories" id="admin-categories"><p>Carregando categorias...</p></div></div>
         </div>
+        <div class="admin-coupons-panel"><div class="admin-list-head"><div><h2>Cupons cadastrados</h2><small>Consulte, edite, desative ou exclua códigos promocionais.</small></div><button data-action="refresh-admin">Atualizar</button></div><div class="admin-coupons" id="admin-coupons"><p>Carregando cupons...</p></div></div>
       </section>
 
       <section class="admin-section" data-admin-section="access">
@@ -1065,8 +1117,13 @@ function bindPageEvents() {
   document.querySelector("#admin-product-form [name='colorHex']")?.addEventListener("input", updateAutomaticColorName);
   document.querySelector("#admin-content-form")?.addEventListener("submit", saveAdminContent);
   document.querySelector("#admin-banner-image")?.addEventListener("change", uploadAdminBanner);
+  document.querySelector("#admin-banner-form")?.addEventListener("submit", saveAdminPromotionBanner);
+  document.querySelector("#admin-promotion-image")?.addEventListener("change", uploadAdminPromotionImage);
+  document.querySelector("[data-action='cancel-banner-edit']")?.addEventListener("click", resetAdminBannerForm);
   document.querySelector("#admin-category-form")?.addEventListener("submit", saveAdminCategory);
+  document.querySelector("[data-action='cancel-category-edit']")?.addEventListener("click", resetAdminCategoryForm);
   document.querySelector("#admin-coupon-form")?.addEventListener("submit", saveAdminCoupon);
+  document.querySelector("[data-action='cancel-coupon-edit']")?.addEventListener("click", resetAdminCouponForm);
   document.querySelector("#admin-access-form")?.addEventListener("submit", createAdminAccess);
   document.querySelector("[data-action='seed-products']")?.addEventListener("click", seedInitialProducts);
   document.querySelectorAll("[data-action='refresh-admin']").forEach(button => button.addEventListener("click", loadAdminData));
@@ -1249,17 +1306,22 @@ function switchAdminTab(tab) {
 async function loadAdminData() {
   if (!firebaseServices || sessionUser?.role !== "admin") return;
   try {
-    [adminProducts, adminOrders, adminUsers, adminCategories, adminReviews] = await Promise.all([
+    [adminProducts, adminOrders, adminUsers, adminCategories, adminReviews, adminCoupons, adminBanners] = await Promise.all([
       firebaseServices.firestore.listAllProducts(),
       firebaseServices.firestore.listOrders(),
       firebaseServices.access.listAccessUsers(),
       firebaseServices.firestore.listCategories(),
-      firebaseServices.firestore.listAllReviews()
+      firebaseServices.firestore.listAllReviews(),
+      firebaseServices.firestore.listCoupons(),
+      firebaseServices.firestore.listAllBanners()
     ]);
     renderAdminProducts();
     renderAdminOrders();
     renderAdminUsers();
     renderAdminReviews();
+    renderAdminCategories();
+    renderAdminCoupons();
+    renderAdminBanners();
     refreshAdminCategorySelect();
   } catch (error) {
     showToast(firebaseErrorMessage(error));
@@ -1438,6 +1500,171 @@ function refreshAdminCategorySelect() {
   const names = adminCategories.filter(category => category.ativo !== false).map(category => category.nome);
   const categories = names.length ? names : [...new Set(catalog.map(product => product.category))];
   select.innerHTML = categories.map(category => `<option ${category === current ? "selected" : ""}>${escapeHtml(category)}</option>`).join("");
+}
+
+function renderAdminCategories() {
+  const container = document.querySelector("#admin-categories");
+  if (!container) return;
+  container.innerHTML = adminCategories.length ? adminCategories.map(category => {
+    const productCount = adminProducts.filter(product => product.category === category.nome).length;
+    return `
+      <article class="admin-category-row">
+        <div>
+          <strong>${escapeHtml(category.nome)}</strong>
+          <span>${category.ativo !== false ? "Ativa" : "Inativa"} · ${productCount} produto(s)</span>
+        </div>
+        <span class="category-state ${category.ativo !== false ? "active" : ""}">${category.ativo !== false ? "Visível" : "Oculta"}</span>
+        <div class="admin-row-actions">
+          <button data-category-edit="${category.id}">Editar</button>
+          <button data-category-delete="${category.id}" ${productCount ? "disabled title='Mova os produtos antes de excluir'" : ""}>Excluir</button>
+        </div>
+      </article>`;
+  }).join("") : "<p>Nenhuma categoria cadastrada.</p>";
+  container.querySelectorAll("[data-category-edit]").forEach(button => button.addEventListener("click", () => editAdminCategory(button.dataset.categoryEdit)));
+  container.querySelectorAll("[data-category-delete]").forEach(button => button.addEventListener("click", () => removeAdminCategory(button.dataset.categoryDelete)));
+}
+
+function renderAdminCoupons() {
+  const container = document.querySelector("#admin-coupons");
+  if (!container) return;
+  container.innerHTML = adminCoupons.length ? adminCoupons.map(coupon => `
+    <article class="admin-coupon-row">
+      <div><strong>${escapeHtml(coupon.codigo || coupon.id)}</strong><span>${coupon.tipo === "percentual" ? `${Number(coupon.valor)}% de desconto` : `${money(Number(coupon.valor))} de desconto`}</span></div>
+      <div><span>Validade</span><strong>${coupon.validade || "Sem vencimento"}</strong></div>
+      <span class="category-state ${coupon.ativo !== false ? "active" : ""}">${coupon.ativo !== false ? "Ativo" : "Inativo"}</span>
+      <div class="admin-row-actions"><button data-coupon-edit="${coupon.id}">Editar</button><button data-coupon-delete="${coupon.id}">Excluir</button></div>
+    </article>`).join("") : "<p>Nenhum cupom cadastrado.</p>";
+  container.querySelectorAll("[data-coupon-edit]").forEach(button => button.addEventListener("click", () => editAdminCoupon(button.dataset.couponEdit)));
+  container.querySelectorAll("[data-coupon-delete]").forEach(button => button.addEventListener("click", () => removeAdminCoupon(button.dataset.couponDelete)));
+}
+
+function editAdminCoupon(couponId) {
+  const coupon = adminCoupons.find(item => item.id === couponId);
+  const form = document.querySelector("#admin-coupon-form");
+  if (!coupon || !form) return;
+  form.elements.editingCode.value = coupon.id;
+  form.elements.code.value = coupon.codigo || coupon.id;
+  form.elements.code.readOnly = true;
+  form.elements.type.value = coupon.tipo || "percentual";
+  form.elements.value.value = Number(coupon.valor || 0);
+  form.elements.validity.value = coupon.validade || "";
+  form.elements.active.checked = coupon.ativo !== false;
+  document.querySelector("#admin-coupon-title").textContent = "Editar cupom";
+  form.querySelector("[data-action='cancel-coupon-edit']").hidden = false;
+  form.scrollIntoView({ behavior: "smooth", block: "center" });
+}
+
+function resetAdminCouponForm() {
+  const form = document.querySelector("#admin-coupon-form");
+  if (!form) return;
+  resetForm(form);
+  form.elements.code.readOnly = false;
+  form.elements.active.checked = true;
+  document.querySelector("#admin-coupon-title").textContent = "Novo cupom";
+  form.querySelector("[data-action='cancel-coupon-edit']").hidden = true;
+}
+
+async function removeAdminCoupon(couponId) {
+  if (!window.confirm(`Excluir o cupom "${couponId}"?`)) return;
+  try {
+    await firebaseServices.firestore.deleteCoupon(couponId);
+    showToast("Cupom excluído.");
+    resetAdminCouponForm();
+    await loadAdminData();
+  } catch (error) {
+    showToast(firebaseErrorMessage(error));
+  }
+}
+
+function renderAdminBanners() {
+  const container = document.querySelector("#admin-banners");
+  if (!container) return;
+  container.innerHTML = adminBanners.length ? adminBanners.map(banner => `
+    <article class="admin-banner-row">
+      <img src="${escapeHtml(banner.imagem || "assets/images/brand/logo.jpeg")}" alt="${escapeHtml(banner.titulo || "Banner EIGHT")}">
+      <div><strong>${escapeHtml(banner.titulo || "Banner sem título")}</strong><span>Ordem ${Number(banner.ordem || 0)} · ${banner.ativo !== false ? "Ativo" : "Inativo"}</span><small>${escapeHtml(banner.texto || "")}</small></div>
+      <div class="admin-row-actions"><button data-banner-edit="${banner.id}">Editar</button><button data-banner-delete="${banner.id}">Excluir</button></div>
+    </article>`).join("") : "<p>Nenhum banner promocional cadastrado.</p>";
+  container.querySelectorAll("[data-banner-edit]").forEach(button => button.addEventListener("click", () => editAdminBanner(button.dataset.bannerEdit)));
+  container.querySelectorAll("[data-banner-delete]").forEach(button => button.addEventListener("click", () => removeAdminBanner(button.dataset.bannerDelete)));
+}
+
+function editAdminBanner(bannerId) {
+  const banner = adminBanners.find(item => item.id === bannerId);
+  const form = document.querySelector("#admin-banner-form");
+  if (!banner || !form) return;
+  form.elements.editingId.value = banner.id;
+  form.elements.title.value = banner.titulo || "";
+  form.elements.text.value = banner.texto || "";
+  form.elements.buttonText.value = banner.botao || "Ver promoção";
+  form.elements.link.value = banner.link || "#catalogo";
+  form.elements.order.value = Number(banner.ordem || 0);
+  form.elements.image.value = banner.imagem || "";
+  form.elements.active.checked = banner.ativo !== false;
+  document.querySelector("#admin-banner-form-title").textContent = "Editar banner promocional";
+  form.querySelector("[data-action='cancel-banner-edit']").hidden = false;
+  form.scrollIntoView({ behavior: "smooth", block: "center" });
+}
+
+function resetAdminBannerForm() {
+  const form = document.querySelector("#admin-banner-form");
+  if (!form) return;
+  resetForm(form);
+  form.elements.buttonText.value = "Ver promoção";
+  form.elements.link.value = "#catalogo";
+  form.elements.order.value = "0";
+  form.elements.active.checked = true;
+  document.querySelector("#admin-banner-form-title").textContent = "Novo banner promocional";
+  form.querySelector("[data-action='cancel-banner-edit']").hidden = true;
+  const status = document.querySelector("#promotion-upload-status");
+  if (status) status.textContent = "A imagem será otimizada antes de salvar.";
+}
+
+async function removeAdminBanner(bannerId) {
+  if (!window.confirm("Excluir este banner promocional?")) return;
+  try {
+    await firebaseServices.firestore.deleteBanner(bannerId);
+    promotionBanners = await firebaseServices.firestore.listActiveBanners();
+    showToast("Banner excluído.");
+    resetAdminBannerForm();
+    await loadAdminData();
+  } catch (error) {
+    showToast(firebaseErrorMessage(error));
+  }
+}
+
+function editAdminCategory(categoryId) {
+  const category = adminCategories.find(item => item.id === categoryId);
+  const form = document.querySelector("#admin-category-form");
+  if (!category || !form) return;
+  form.elements.editingId.value = category.id;
+  form.elements.name.value = category.nome;
+  form.elements.active.checked = category.ativo !== false;
+  document.querySelector("#admin-category-title").textContent = "Editar categoria";
+  form.querySelector("[data-action='cancel-category-edit']").hidden = false;
+  form.scrollIntoView({ behavior: "smooth", block: "center" });
+}
+
+function resetAdminCategoryForm() {
+  const form = document.querySelector("#admin-category-form");
+  if (!form) return;
+  resetForm(form);
+  form.elements.active.checked = true;
+  document.querySelector("#admin-category-title").textContent = "Nova categoria";
+  form.querySelector("[data-action='cancel-category-edit']").hidden = true;
+}
+
+async function removeAdminCategory(categoryId) {
+  const category = adminCategories.find(item => item.id === categoryId);
+  if (!category || !window.confirm(`Excluir a categoria "${category.nome}"?`)) return;
+  try {
+    await firebaseServices.firestore.deleteCategory(categoryId);
+    showToast("Categoria excluída.");
+    resetAdminCategoryForm();
+    await loadAdminData();
+  } catch (error) {
+    showToast(firebaseErrorMessage(error));
+  }
 }
 
 function renderAdminReviews() {
@@ -1649,6 +1876,46 @@ async function uploadAdminBanner(event) {
   }
 }
 
+async function uploadAdminPromotionImage(event) {
+  const file = event.currentTarget.files[0];
+  if (!file) return;
+  const form = document.querySelector("#admin-banner-form");
+  const status = document.querySelector("#promotion-upload-status");
+  try {
+    const upload = await firebaseServices.storage.prepareInlineProductImage(file, progress => {
+      status.textContent = `Otimizando banner: ${progress}%`;
+    });
+    form.elements.image.value = upload.url;
+    status.textContent = `Imagem pronta (${Math.round(upload.size / 1024)} KB).`;
+  } catch (error) {
+    status.textContent = firebaseErrorMessage(error);
+  }
+}
+
+async function saveAdminPromotionBanner(event) {
+  event.preventDefault();
+  const form = event.currentTarget;
+  const data = new FormData(form);
+  try {
+    await firebaseServices.firestore.saveBanner({
+      id: data.get("editingId") || undefined,
+      title: String(data.get("title") || "").trim(),
+      text: String(data.get("text") || "").trim(),
+      buttonText: String(data.get("buttonText") || "").trim(),
+      link: String(data.get("link") || "#catalogo").trim(),
+      order: Number(data.get("order") || 0),
+      image: String(data.get("image") || "").trim(),
+      active: data.get("active") === "on"
+    });
+    promotionBanners = await firebaseServices.firestore.listActiveBanners();
+    resetAdminBannerForm();
+    showToast(data.get("editingId") ? "Banner atualizado." : "Banner criado.");
+    await loadAdminData();
+  } catch (error) {
+    showToast(firebaseErrorMessage(error));
+  }
+}
+
 async function saveAdminContent(event) {
   event.preventDefault();
   const data = new FormData(event.currentTarget);
@@ -1692,11 +1959,16 @@ async function updateAdminOrder(orderId, status) {
 async function saveAdminCategory(event) {
   event.preventDefault();
   const form = event.currentTarget;
-  const name = new FormData(form).get("name").trim();
+  const data = new FormData(form);
+  const name = data.get("name").trim();
   try {
-    await firebaseServices.firestore.saveCategory({ nome: name, ativo: true });
-    resetForm(form);
-    showToast("Categoria salva.");
+    await firebaseServices.firestore.saveCategory({
+      id: data.get("editingId") || undefined,
+      nome: name,
+      ativo: data.get("active") === "on"
+    });
+    resetAdminCategoryForm();
+    showToast(data.get("editingId") ? "Categoria atualizada." : "Categoria salva.");
     await loadAdminData();
   } catch (error) {
     showToast(firebaseErrorMessage(error));
@@ -1709,13 +1981,16 @@ async function saveAdminCoupon(event) {
   const data = new FormData(form);
   try {
     await firebaseServices.firestore.saveCoupon({
-      codigo: data.get("code"),
+      codigo: data.get("editingCode") || data.get("code"),
       tipo: data.get("type"),
       valor: data.get("value"),
-      ativo: true
+      ativo: data.get("active") === "on",
+      validade: data.get("validity") || null
     });
-    resetForm(form);
-    showToast("Cupom salvo.");
+    const editing = Boolean(data.get("editingCode"));
+    resetAdminCouponForm();
+    showToast(editing ? "Cupom atualizado." : "Cupom salvo.");
+    await loadAdminData();
   } catch (error) {
     showToast(firebaseErrorMessage(error));
   }

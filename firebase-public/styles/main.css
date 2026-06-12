@@ -76,6 +76,18 @@ button { cursor: pointer; }
 .benefit span { color: var(--muted); font-size: 12px; }
 .benefit .benefit-number { color: var(--wine); font: 600 10px "Manrope"; letter-spacing: .1em; }
 
+.promotion-banners { padding: 70px 0 0; }
+.promotion-banner-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 18px; }
+.promotion-banner-grid.single { grid-template-columns: 1fr; }
+.promotion-banner { position: relative; min-height: 440px; overflow: hidden; color: white; background: var(--black); }
+.promotion-banner img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; transition: transform .65s ease; }
+.promotion-banner:hover img { transform: scale(1.025); }
+.promotion-banner-overlay { position: absolute; inset: 0; background: linear-gradient(90deg, rgba(10,10,10,.78), rgba(10,10,10,.12)); }
+.promotion-banner-copy { position: relative; z-index: 1; max-width: 590px; min-height: 440px; display: flex; flex-direction: column; justify-content: flex-end; padding: clamp(35px, 5vw, 70px); }
+.promotion-banner-copy h2 { margin: 0 0 15px; font: 500 clamp(32px, 4.5vw, 66px)/1 "Manrope"; letter-spacing: -.05em; }
+.promotion-banner-copy > p:not(.eyebrow) { max-width: 470px; margin: 0 0 28px; color: rgba(255,255,255,.78); line-height: 1.7; }
+.promotion-banner-button { width: fit-content; padding-bottom: 7px; border-bottom: 1px solid white; font: 600 10px "Manrope"; letter-spacing: .15em; text-transform: uppercase; }
+
 .featured { padding: 110px 0 120px; }
 .section-head { display: flex; align-items: end; justify-content: space-between; gap: 30px; margin-bottom: 52px; }
 .text-link { padding-bottom: 5px; border-bottom: 1px solid var(--black); font-size: 11px; letter-spacing: .14em; text-transform: uppercase; }
@@ -384,7 +396,7 @@ button { cursor: pointer; }
 .admin-list-head { display: flex; align-items: center; justify-content: space-between; padding: 22px 25px; background: white; border-bottom: 1px solid var(--mid); }
 .admin-list-head h2 { margin: 0; }
 .admin-list-head button, .admin-row-actions button { border: 0; border-bottom: 1px solid; background: transparent; color: var(--muted); font-size: 10px; }
-.admin-products, .admin-orders, .admin-users { background: white; }
+.admin-products, .admin-orders, .admin-users, .admin-categories, .admin-coupons, .admin-banners { background: white; }
 .admin-product-row { display: grid; grid-template-columns: 90px 1fr auto; gap: 18px; padding: 18px 25px; align-items: center; border-bottom: 1px solid var(--mid); }
 .admin-product-row img { width: 90px; height: 95px; object-fit: cover; background: var(--light); }
 .admin-product-row > div:not(.admin-row-actions), .admin-order-row > div { display: grid; gap: 5px; }
@@ -402,6 +414,23 @@ button { cursor: pointer; }
 .admin-user-row select { height: 40px; padding: 0 9px; border: 1px solid var(--mid); background: white; font-size: 11px; }
 .admin-row-actions button:disabled, .admin-user-row select:disabled { cursor: not-allowed; opacity: .45; }
 .admin-dual { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+.admin-category-tools { display: grid; gap: 24px; }
+.admin-promotion-manager { display: grid; grid-template-columns: 430px 1fr; gap: 24px; align-items: start; margin-top: 24px; }
+.admin-banner-row { display: grid; grid-template-columns: 150px 1fr auto; gap: 18px; align-items: center; padding: 18px 22px; border-bottom: 1px solid var(--mid); }
+.admin-banner-row img { width: 150px; height: 95px; object-fit: cover; background: var(--light); }
+.admin-banner-row > div:not(.admin-row-actions) { display: grid; gap: 5px; }
+.admin-banner-row span, .admin-banner-row small { color: var(--muted); font-size: 10px; }
+.admin-coupons-panel { margin-top: 24px; }
+.admin-coupon-row { display: grid; grid-template-columns: 1fr 190px 100px auto; gap: 20px; align-items: center; padding: 20px 24px; border-bottom: 1px solid var(--mid); }
+.admin-coupon-row > div:not(.admin-row-actions) { display: grid; gap: 5px; }
+.admin-coupon-row span { color: var(--muted); font-size: 10px; }
+.admin-category-row { display: grid; grid-template-columns: 1fr 110px auto; gap: 20px; align-items: center; padding: 20px 24px; border-bottom: 1px solid var(--mid); }
+.admin-category-row > div:first-child { display: grid; gap: 5px; }
+.admin-category-row span { color: var(--muted); font-size: 10px; }
+.category-state { padding: 8px 10px; background: var(--light); text-align: center; }
+.category-state.active { color: #23613e; background: #edf7f1; }
+.admin-cancel-edit { width: 100%; margin-top: 10px; padding: 12px; border: 0; border-bottom: 1px solid var(--mid); color: var(--muted); background: transparent; font-size: 10px; text-transform: uppercase; }
+.admin-row-actions button:disabled { cursor: not-allowed; opacity: .35; }
 .institutional-grid { display: grid; grid-template-columns: .8fr 1.2fr; gap: 80px; align-items: center; }
 .institutional-grid img { max-height: 720px; object-fit: cover; }
 .institutional-copy p { color: var(--muted); line-height: 1.8; }
@@ -513,6 +542,7 @@ button { cursor: pointer; }
   .auth-shell { grid-template-columns: 1fr; }
   .auth-intro { min-height: 430px; }
   .admin-layout { grid-template-columns: 1fr; }
+  .admin-promotion-manager { grid-template-columns: 1fr; }
   .admin-content-grid, .review-compose, .size-guide-layout, .contact-layout { grid-template-columns: 1fr; }
   .size-recommender { grid-template-columns: 1fr 1fr; }
   .user-order-card > header { grid-template-columns: 1fr 1fr; }
@@ -542,6 +572,9 @@ button { cursor: pointer; }
   .product-showcase { display: block; }
   .product-summary { padding: 35px 23px; }
   .category-grid { grid-template-columns: 1fr; }
+  .promotion-banners { padding-top: 45px; }
+  .promotion-banner-grid { grid-template-columns: 1fr; }
+  .promotion-banner, .promotion-banner-copy { min-height: 390px; }
   .category-card { min-height: 400px; }
   .categories { padding-bottom: 75px; }
   .manifesto-copy { padding: 60px 25px; }
@@ -597,6 +630,14 @@ button { cursor: pointer; }
   .admin-order-row { grid-template-columns: 1fr; padding: 18px; }
   .admin-user-row { grid-template-columns: 44px 1fr; }
   .admin-user-row select, .admin-user-row .admin-row-actions { grid-column: 2; width: 100%; }
+  .admin-category-row { grid-template-columns: 1fr auto; }
+  .admin-category-row .admin-row-actions { grid-column: 1 / -1; }
+  .admin-banner-row { grid-template-columns: 95px 1fr; }
+  .admin-banner-row img { width: 95px; height: 75px; }
+  .admin-banner-row .admin-row-actions { grid-column: 2; }
+  .admin-coupon-row { grid-template-columns: 1fr auto; }
+  .admin-coupon-row > div:nth-child(2) { grid-column: 1; }
+  .admin-coupon-row .admin-row-actions { grid-column: 1 / -1; }
   .admin-review-row { grid-template-columns: 1fr; }
   .admin-content-grid, .review-compose { gap: 25px; padding: 25px; }
   .size-recommender { grid-template-columns: 1fr; padding: 25px; }
